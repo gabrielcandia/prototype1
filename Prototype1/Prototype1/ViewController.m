@@ -17,9 +17,8 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     textViewWM = [[UITextViewWithMentions alloc] init];
-    [textViewWM addMentionListWith:[NSArray arrayWithObjects:@"Mark", @"Matt", @"Matthew", nil] forCharacter:@"@"];
-    [self.textView setDelegate:textViewWM];
-    self.textView.inputAccessoryView = textViewWM.accessoryView;
+    [textViewWM addMentionListWith:[NSMutableArray arrayWithObjects:@"Mark", @"Matt", @"Matthew",@"John",@"Marcus",@"Michael",@"Robert", nil] forCharacter:@"@"];
+    [textViewWM configureClassForTextView:self.textView withSuperView:self.view];
     // Do any additional setup after loading the view, typically from a nib.
 }
 

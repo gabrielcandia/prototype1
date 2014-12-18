@@ -13,7 +13,7 @@
 @interface ViewController : UIViewController {
     UITextViewWithMentions *textViewWM;
 }
-@property (strong, nonatomic) IBOutlet UITextViewWithMentions *textView;
+@property (strong, nonatomic) IBOutlet UITextView *textView;
 
 
 @end

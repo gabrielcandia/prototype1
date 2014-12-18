@@ -8,21 +8,25 @@
 
 #import <UIKit/UIKit.h>
 
-@interface UITextViewWithMentions : UITextView <UITextViewDelegate, UITableViewDataSource,
+@interface UITextViewWithMentions : NSObject <UITextViewDelegate, UITableViewDataSource,
             UITableViewDelegate>{
                 NSMutableDictionary *mentionsDictionaries;
                 UITableView *tableV;
                 UIView *accessoryView;
-                NSArray *tableViewObjects;
+                NSMutableArray *tableViewObjects;
+                UITextView *auxTextView;
+                UIView *superView;
+                NSString *characterString;
 }
 
 @property (nonatomic, retain) NSMutableDictionary *mentionsDictionaries;
-@property (nonatomic, retain) NSArray *tableViewObjects;
+@property (nonatomic, retain) NSMutableArray *tableViewObjects;
 @property (nonatomic, retain) UIView *accessoryView;
 
-- (void)addMentionListWith: (NSArray *)mentionList forCharacter: (NSString *)character;
-- (void)filtrateMentionsForWord: (NSString *)word withMentionCharacter: (NSString *)character;
+-(void)configureClassForTextView: (UITextView *)textView withSuperView: (UIView *)view;
+- (void)addMentionListWith: (NSMutableArray *)mentionList forCharacter: (NSString *)character;
+- (void)filtrateMentionsForTextView:(UITextView *)textView withWord:(NSString *)word withMentionCharacter: (NSString *)character;
 - (void)configureInputAccessoryView;
 - (BOOL) isAlphaNumeric: (NSString *)string;
-
+-(void)getRectForInputViewWithThisEntries: (NSInteger)count forTextView: (UITextView *)textView;
 @end
