@@ -14,6 +14,7 @@
     UITextViewWithMentions *textViewWM;
 }
 @property (strong, nonatomic) IBOutlet UITextView *textView;
+@property (strong, nonatomic) IBOutlet UITextView *textView2;
 
 
 @end
