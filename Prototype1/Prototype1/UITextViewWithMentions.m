@@ -13,9 +13,9 @@
 @synthesize tableViewObjects;
 @synthesize accessoryView;
 
-static const CGFloat ROW_HEIGHT = 44;
-static const CGFloat NUMBER_OF_ROW_PORTRAIT_IPHONE = 3;
-static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPHONE = 1;
+static const CGFloat ROW_HEIGHT = 30;
+static const CGFloat NUMBER_OF_ROW_PORTRAIT_IPHONE = 5;
+static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPHONE = 3;
 static const CGFloat NUMBER_OF_ROW_PORTRAIT_IPAD = 3;
 static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
 
@@ -38,9 +38,9 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
     
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(keyboardWillShow:)
-                                                 name:UIKeyboardWillShowNotification
+                                                 name:UIKeyboardDidChangeFrameNotification //UIKeyboardWillShowNotification
                                                object:nil];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(configureInputAccessoryView)
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(orientationChange)
                                                  name:UIDeviceOrientationDidChangeNotification
                                                object:nil];
     return self;
@@ -48,12 +48,21 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
 
 -(void)configureClassForTextView: (UITextView *)textView withSuperView: (UIView *)view {
     [textView setDelegate:self];
-    textView.inputAccessoryView = self.accessoryView;
+    textView.inputAccessoryView = accessoryView;
+    textView.inputAccessoryView.autoresizingMask = UIViewAutoresizingFlexibleHeight;
     superView = view;
 }
 
 - (void)keyboardWillShow:(NSNotification *)notification {
-    keyboardSize = [[[notification userInfo] objectForKey:UIKeyboardFrameBeginUserInfoKey] CGRectValue].size;
+    CGSize newKeyboardSize = [[[notification userInfo] objectForKey:UIKeyboardFrameBeginUserInfoKey] CGRectValue].size;
+    if (keyboardSize.width != newKeyboardSize.width || keyboardSize.height != newKeyboardSize.height) {
+        keyboardSize = newKeyboardSize;
+        //[self resizeTextView:auxTextView];
+    }
+}
+- (void) orientationChange {
+    [self configureInputAccessoryView];
+    //[self resizeTextView:auxTextView];
 }
 
 - (void)configureInputAccessoryView {
@@ -74,8 +83,8 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
     else {
         
     }
-    accessoryView.frame = accessFrame;
-    tableV.frame = accessFrame;
+    [accessoryView setFrame:accessFrame];
+    [tableV setFrame:accessFrame];
 }
 
 -(void)getRectForInputViewWithThisEntries: (NSInteger)count forTextView: (UITextView *)textView{
@@ -109,13 +118,15 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
             
         }
     }
-    tableV.frame = tableViewRect;
-    textView.inputAccessoryView.frame = viewRect;
     if(count == 0) {
         textView.inputAccessoryView.hidden = TRUE;
     }
     else {
+        tableV.frame = tableViewRect;
+        textView.inputAccessoryView.frame = viewRect;
         textView.inputAccessoryView.hidden = FALSE;
+        [textView reloadInputViews];
+
     }
 }
 
@@ -209,13 +220,15 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
     textView.inputAccessoryView.hidden = TRUE;
     auxTextView = textView;
     originalTextViewRect = textView.frame;
-    [self performSelector :@selector(resizeTextView:) withObject:textView afterDelay:0.1];
+    [self performSelector :@selector(resizeTextView:) withObject:textView afterDelay:0.2];
 
 }
 
 - (void)resizeTextView: (UITextView *)textView {
     CGRect screenRect = [[UIScreen mainScreen] bounds];
     CGFloat screenHeight = screenRect.size.height;
+    CGFloat screenWidth = screenRect.size.width;
+    
     UIInterfaceOrientation orientation = [UIApplication sharedApplication].statusBarOrientation;
     NSInteger count = [tableViewObjects count];
     NSInteger statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.height;
@@ -239,17 +252,22 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
     CGFloat sizeObjects = count * ROW_HEIGHT;
     
     CGRect newTextViewFrame = textView.frame;
-    newTextViewFrame.size.height = screenHeight - keyboardSize.height - statusBarHeight + sizeObjects;
+    newTextViewFrame.size.height = screenHeight - keyboardSize.height - statusBarHeight + sizeObjects -10;
+    newTextViewFrame.size.width = screenWidth;
     newTextViewFrame.origin.y = statusBarHeight;
     newTextViewFrame.origin.x = 0;
     textView.frame = newTextViewFrame;
     [textView setFrame:newTextViewFrame];
-    [[UIApplication sharedApplication].keyWindow addSubview:textView];
+
+    
+    //[[UIApplication sharedApplication].keyWindow addSubview:textView];
+    //[superView bringSubviewToFront:textView];
 }
 
 - (void)textViewDidEndEditing:(UITextView *)textView {
     auxTextView = nil;
     textView.frame = originalTextViewRect;
+    tableViewObjects = [[NSMutableArray alloc] init];
 }
 
 /******* TextField Methods END *******/
@@ -289,6 +307,7 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
     [auxTextView replaceRange:textRange withText:[NSString stringWithFormat:@"%@%@ ",characterString, [tableViewObjects objectAtIndex:[indexPath row]]]];
     auxTextView.inputAccessoryView.hidden = YES;
     tableViewObjects = [[NSMutableArray alloc] init];
+    [tableV reloadData];
     [self resizeTextView:auxTextView];
 }
 
