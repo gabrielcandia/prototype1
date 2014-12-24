@@ -19,6 +19,8 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPHONE = 3;
 static const CGFloat NUMBER_OF_ROW_PORTRAIT_IPAD = 3;
 static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
 
+#define SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(v)  ([[[UIDevice currentDevice] systemVersion] compare:v options:NSNumericSearch] != NSOrderedAscending)
+
 
 -(id)init {
     NSLog(@"Init");
@@ -36,13 +38,16 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
     [accessoryView addSubview:tableV];
     //[self configureInputAccessoryView];
     
+    UIDevice *device = [UIDevice currentDevice];
+    
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(keyboardWillShow:)
                                                  name:UIKeyboardDidChangeFrameNotification //UIKeyboardWillShowNotification
                                                object:nil];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(orientationChange)
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(orientationChange:)
                                                  name:UIDeviceOrientationDidChangeNotification
-                                               object:nil];
+                                               object:device];
     return self;
 }
 
@@ -57,12 +62,12 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
     CGSize newKeyboardSize = [[[notification userInfo] objectForKey:UIKeyboardFrameBeginUserInfoKey] CGRectValue].size;
     if (keyboardSize.width != newKeyboardSize.width || keyboardSize.height != newKeyboardSize.height) {
         keyboardSize = newKeyboardSize;
-        //[self resizeTextView:auxTextView];
+        [self resizeTextView:auxTextView];
     }
 }
-- (void) orientationChange {
+- (void) orientationChange:(NSNotification *)note {
     [self configureInputAccessoryView];
-    //[self resizeTextView:auxTextView];
+    [self getRectForInputViewWithThisEntries:[tableViewObjects count] forTextView:auxTextView];
 }
 
 - (void)configureInputAccessoryView {
@@ -70,6 +75,7 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
     UIInterfaceOrientation orientation = [UIApplication sharedApplication].statusBarOrientation;
     CGRect screenRect = [[UIScreen mainScreen] bounds];
     CGFloat screenWidth = screenRect.size.width;
+    CGFloat screenHeight = screenRect.size.height;
     CGRect accessFrame;
     
     if(UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
@@ -77,7 +83,12 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
             accessFrame = CGRectMake(0.0, 0.0, screenWidth, ROW_HEIGHT*NUMBER_OF_ROW_PORTRAIT_IPHONE);
         }
         else if(orientation == UIInterfaceOrientationLandscapeLeft || orientation == UIInterfaceOrientationLandscapeRight){ //iPhone Landscape
-            accessFrame = CGRectMake(0.0, 0.0, screenWidth, ROW_HEIGHT*NUMBER_OF_ROW_LANDSCAPE_IPHONE);
+            if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8.0")) {
+                accessFrame = CGRectMake(0.0, 0.0, screenWidth, ROW_HEIGHT*NUMBER_OF_ROW_LANDSCAPE_IPHONE);
+            }
+            else {
+                accessFrame = CGRectMake(0.0, 0.0, screenHeight, ROW_HEIGHT*NUMBER_OF_ROW_LANDSCAPE_IPHONE);
+            }
         }
     }
     else {
@@ -93,7 +104,7 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
     UIInterfaceOrientation orientation = [UIApplication sharedApplication].statusBarOrientation;
     
     CGRect screenRect = [[UIScreen mainScreen] bounds];
-    //CGFloat screenHeight = screenRect.size.height;
+    CGFloat screenHeight = screenRect.size.height;
     CGFloat screenWidth = screenRect.size.width;
     
     if(UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
@@ -101,13 +112,17 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
             count = (count > NUMBER_OF_ROW_PORTRAIT_IPHONE)? NUMBER_OF_ROW_PORTRAIT_IPHONE : count;
             viewRect = CGRectMake(0.0, (NUMBER_OF_ROW_PORTRAIT_IPHONE-count)*ROW_HEIGHT, screenWidth, ROW_HEIGHT*count);
             tableViewRect = CGRectMake(0.0, 0.0, screenWidth, ROW_HEIGHT*count);
-            NSLog(@"Frame, X:%f,Y:%f, Width: %f, Height: %f",viewRect.origin.x, viewRect.origin.y, viewRect.size.width, viewRect.size.height);
         }
         else if(orientation == UIInterfaceOrientationLandscapeLeft || orientation == UIInterfaceOrientationLandscapeRight){ //iPhone Landscape
             count = (count > NUMBER_OF_ROW_LANDSCAPE_IPHONE)? NUMBER_OF_ROW_LANDSCAPE_IPHONE : count;
-            viewRect = CGRectMake(0.0, (NUMBER_OF_ROW_LANDSCAPE_IPHONE-count)*ROW_HEIGHT, screenWidth, ROW_HEIGHT*count);
-            tableViewRect = CGRectMake(0.0, 0.0, screenWidth, ROW_HEIGHT*count);
-            NSLog(@"Frame, X:%f,Y:%f, Width: %f, Height: %f",viewRect.origin.x, viewRect.origin.y, viewRect.size.width, viewRect.size.height);
+            if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8.0")) {
+                viewRect = CGRectMake(0.0, (NUMBER_OF_ROW_LANDSCAPE_IPHONE-count)*ROW_HEIGHT, screenWidth, ROW_HEIGHT*count);
+                tableViewRect = CGRectMake(0.0, 0.0, screenWidth, ROW_HEIGHT*count);
+            }
+            else {
+                viewRect = CGRectMake(0.0, (NUMBER_OF_ROW_LANDSCAPE_IPHONE-count)*ROW_HEIGHT, screenHeight, ROW_HEIGHT*count);
+                tableViewRect = CGRectMake(0.0, 0.0, screenHeight, ROW_HEIGHT*count);
+            }
         }
     }
     else {
@@ -119,14 +134,21 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
         }
     }
     if(count == 0) {
+        [self configureInputAccessoryView];
         textView.inputAccessoryView.hidden = TRUE;
     }
     else {
-        tableV.frame = tableViewRect;
-        textView.inputAccessoryView.frame = viewRect;
-        textView.inputAccessoryView.hidden = FALSE;
-        [textView reloadInputViews];
+        if(viewRect.size.width != textView.inputAccessoryView.frame.size.width ||
+           viewRect.size.height != textView.inputAccessoryView.frame.size.height) {
+            tableV.frame = tableViewRect;
+            textView.inputAccessoryView.frame = viewRect;
+            textView.inputAccessoryView = nil;
+            textView.inputAccessoryView = accessoryView;
+            [textView reloadInputViews];
 
+
+        }
+        textView.inputAccessoryView.hidden = FALSE;
     }
 }
 
@@ -232,13 +254,32 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
     UIInterfaceOrientation orientation = [UIApplication sharedApplication].statusBarOrientation;
     NSInteger count = [tableViewObjects count];
     NSInteger statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.height;
+    NSInteger statusBarWidth = [UIApplication sharedApplication].statusBarFrame.size.width;
+    
+    CGFloat sizeObjects;
+    CGFloat height;
+    CGFloat width;
+    
     
     if(UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
         if(orientation == 0 || orientation == UIInterfaceOrientationPortrait){ //iPhone Portrait
             count = (count > NUMBER_OF_ROW_PORTRAIT_IPHONE)? 0 : (NUMBER_OF_ROW_PORTRAIT_IPHONE -count);
+            sizeObjects = count * ROW_HEIGHT;
+            height = screenHeight - keyboardSize.height - statusBarHeight + sizeObjects -10;
+            width = screenWidth;
         }
         else if(orientation == UIInterfaceOrientationLandscapeLeft || orientation == UIInterfaceOrientationLandscapeRight){ //iPhone Landscape
             count = (count > NUMBER_OF_ROW_LANDSCAPE_IPHONE)? 0 : (NUMBER_OF_ROW_LANDSCAPE_IPHONE -count);
+            sizeObjects = count * ROW_HEIGHT;
+            if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8.0")) {
+                height = screenHeight - keyboardSize.height - statusBarHeight + sizeObjects -10;
+                width = screenWidth;
+            }
+            else {
+                height = screenWidth - keyboardSize.width - statusBarWidth + sizeObjects -10;
+                width = screenHeight;
+                statusBarHeight = statusBarWidth;
+            }
         }
     }
     else {
@@ -249,16 +290,16 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
             
         }
     }
-    CGFloat sizeObjects = count * ROW_HEIGHT;
     
     CGRect newTextViewFrame = textView.frame;
-    newTextViewFrame.size.height = screenHeight - keyboardSize.height - statusBarHeight + sizeObjects -10;
-    newTextViewFrame.size.width = screenWidth;
+    newTextViewFrame.size.width = width;
+    newTextViewFrame.size.height = height;
     newTextViewFrame.origin.y = statusBarHeight;
     newTextViewFrame.origin.x = 0;
+    
     textView.frame = newTextViewFrame;
     [textView setFrame:newTextViewFrame];
-
+    
     
     //[[UIApplication sharedApplication].keyWindow addSubview:textView];
     //[superView bringSubviewToFront:textView];
@@ -309,6 +350,7 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
     tableViewObjects = [[NSMutableArray alloc] init];
     [tableV reloadData];
     [self resizeTextView:auxTextView];
+    [self getRectForInputViewWithThisEntries:0 forTextView:auxTextView];
 }
 
 - (CGFloat) tableView:(UITableView *)tableView heightForRowAtIndexPath: (NSIndexPath *) indexPath {
