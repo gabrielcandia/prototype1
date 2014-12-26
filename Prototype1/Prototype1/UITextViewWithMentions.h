@@ -31,6 +31,8 @@
 - (void)addMentionListWith: (NSMutableArray *)mentionList forCharacter: (NSString *)character;
 - (void)filtrateMentionsForTextView:(UITextView *)textView withWord:(NSString *)word withMentionCharacter: (NSString *)character;
 - (void)configureInputAccessoryView;
-- (BOOL) isAlphaNumeric: (NSString *)string;
+- (BOOL)isAlphaNumeric: (NSString *)string;
+- (BOOL)isPortrait;
+- (BOOL)isLandscape;
 - (void)getRectForInputViewWithThisEntries: (NSInteger)count forTextView: (UITextView *)textView;
 @end

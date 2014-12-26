@@ -18,9 +18,10 @@
     [super viewDidLoad];
     textViewWM = [[UITextViewWithMentions alloc] init];
     [textViewWM addMentionListWith:[NSMutableArray arrayWithObjects:@"Mark", @"Matt", @"Matthew",@"John",@"Marcus",@"Michael",@"Robert", nil] forCharacter:@"@"];
-    [textViewWM addMentionListWith:[NSMutableArray arrayWithObjects:@"Marcela",@"Daniela",@"Macarena",@"Dorothy", nil] forCharacter:@"&"];
+    [textViewWM addMentionListWith:[NSMutableArray arrayWithObjects:@"Marcela",@"Daniela",@"Macarena",@"Dorothy", nil] forCharacter:@"$"];
     [textViewWM configureClassForTextView:self.textView withSuperView:self.view];
     [textViewWM configureClassForTextView:self.textView2 withSuperView:self.view];
+    [textViewWM configureClassForTextView:self.textView3 withSuperView:self.view];
     // Do any additional setup after loading the view, typically from a nib.
 }
 

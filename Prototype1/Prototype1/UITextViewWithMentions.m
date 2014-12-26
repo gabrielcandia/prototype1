@@ -59,8 +59,8 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
 }
 
 - (void)keyboardWillShow:(NSNotification *)notification {
-    CGSize newKeyboardSize = [[[notification userInfo] objectForKey:UIKeyboardFrameBeginUserInfoKey] CGRectValue].size;
-    if (keyboardSize.width != newKeyboardSize.width || keyboardSize.height != newKeyboardSize.height) {
+    CGSize newKeyboardSize = [[[notification userInfo] objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue].size;
+    if(newKeyboardSize.height != keyboardSize.height || newKeyboardSize.width != keyboardSize.height) {
         keyboardSize = newKeyboardSize;
         [self resizeTextView:auxTextView];
     }
@@ -72,48 +72,49 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
 
 - (void)configureInputAccessoryView {
     // Autocomplete TableView Configuration
-    UIInterfaceOrientation orientation = [UIApplication sharedApplication].statusBarOrientation;
-    CGRect screenRect = [[UIScreen mainScreen] bounds];
+    /*CGRect screenRect = [[UIScreen mainScreen] bounds];
     CGFloat screenWidth = screenRect.size.width;
     CGFloat screenHeight = screenRect.size.height;
-    CGRect accessFrame;
+    
     
     if(UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
-        if(orientation == 0 || orientation == UIInterfaceOrientationPortrait){ //iPhone Portrait
+        if([self isPortrait]){ //iPhone Portrait
             accessFrame = CGRectMake(0.0, 0.0, screenWidth, ROW_HEIGHT*NUMBER_OF_ROW_PORTRAIT_IPHONE);
         }
-        else if(orientation == UIInterfaceOrientationLandscapeLeft || orientation == UIInterfaceOrientationLandscapeRight){ //iPhone Landscape
+        else if([self isLandscape]){ //iPhone Landscape
             if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8.0")) {
                 accessFrame = CGRectMake(0.0, 0.0, screenWidth, ROW_HEIGHT*NUMBER_OF_ROW_LANDSCAPE_IPHONE);
             }
             else {
-                accessFrame = CGRectMake(0.0, 0.0, screenHeight, ROW_HEIGHT*NUMBER_OF_ROW_LANDSCAPE_IPHONE);
+                accessFrame = CGRectMake(0.0, 0.0, 0.0, 0.0);//screenHeight, ROW_HEIGHT*NUMBER_OF_ROW_LANDSCAPE_IPHONE);
             }
         }
     }
     else {
         
-    }
+    }*/
+    CGRect accessFrame = CGRectMake(0.0, 0.0, 0.0, 0.0);
     [accessoryView setFrame:accessFrame];
     [tableV setFrame:accessFrame];
+    auxTextView.inputAccessoryView.hidden = TRUE;
+    
 }
 
 -(void)getRectForInputViewWithThisEntries: (NSInteger)count forTextView: (UITextView *)textView{
     CGRect tableViewRect;
     CGRect viewRect;
-    UIInterfaceOrientation orientation = [UIApplication sharedApplication].statusBarOrientation;
     
     CGRect screenRect = [[UIScreen mainScreen] bounds];
     CGFloat screenHeight = screenRect.size.height;
     CGFloat screenWidth = screenRect.size.width;
     
     if(UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
-        if(orientation == 0 || orientation == UIInterfaceOrientationPortrait){ //iPhone Portrait
+        if([self isPortrait]){ //iPhone Portrait
             count = (count > NUMBER_OF_ROW_PORTRAIT_IPHONE)? NUMBER_OF_ROW_PORTRAIT_IPHONE : count;
             viewRect = CGRectMake(0.0, (NUMBER_OF_ROW_PORTRAIT_IPHONE-count)*ROW_HEIGHT, screenWidth, ROW_HEIGHT*count);
             tableViewRect = CGRectMake(0.0, 0.0, screenWidth, ROW_HEIGHT*count);
         }
-        else if(orientation == UIInterfaceOrientationLandscapeLeft || orientation == UIInterfaceOrientationLandscapeRight){ //iPhone Landscape
+        else if([self isLandscape]){ //iPhone Landscape
             count = (count > NUMBER_OF_ROW_LANDSCAPE_IPHONE)? NUMBER_OF_ROW_LANDSCAPE_IPHONE : count;
             if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8.0")) {
                 viewRect = CGRectMake(0.0, (NUMBER_OF_ROW_LANDSCAPE_IPHONE-count)*ROW_HEIGHT, screenWidth, ROW_HEIGHT*count);
@@ -126,10 +127,10 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
         }
     }
     else {
-        if(orientation == 0 || orientation == UIInterfaceOrientationPortrait){ //iPad Portrait
+        if([self isPortrait]){ //iPad Portrait
             
         }
-        else if(orientation == UIInterfaceOrientationLandscapeLeft || orientation == UIInterfaceOrientationLandscapeRight){ //iPad Landscape
+        else if([self isLandscape]){ //iPad Landscape
             
         }
     }
@@ -141,14 +142,18 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
         if(viewRect.size.width != textView.inputAccessoryView.frame.size.width ||
            viewRect.size.height != textView.inputAccessoryView.frame.size.height) {
             tableV.frame = tableViewRect;
-            textView.inputAccessoryView.frame = viewRect;
-            textView.inputAccessoryView = nil;
+            accessoryView.frame = viewRect;
+            /* iOS 8 > has a bug with the reloadInputViews, so if you call only the reloadinputview changing the frame size it gets on top of the keyboard, this way the inputAccessoryView is forced to reload */
+            if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8.0")) {
+                textView.inputAccessoryView = nil;
+                [textView reloadInputViews];
+            }
             textView.inputAccessoryView = accessoryView;
             [textView reloadInputViews];
 
-
         }
         textView.inputAccessoryView.hidden = FALSE;
+        //[self resizeTextView: textView];
     }
 }
 
@@ -175,6 +180,7 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
     else {
         textView.inputAccessoryView.hidden = TRUE;
     }
+    [self resizeTextView:textView];
 }
 - (BOOL) isAlphaNumeric: (NSString *)string
 {
@@ -184,13 +190,25 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
     return ([string rangeOfCharacterFromSet:unwantedCharacters].location == NSNotFound);
 }
 
+- (BOOL)isPortrait {
+    UIDeviceOrientation orientation = [[UIDevice currentDevice] orientation];
+    return (orientation == 0 || orientation == UIDeviceOrientationPortrait
+            || orientation == UIDeviceOrientationPortraitUpsideDown);
+}
+
+- (BOOL)isLandscape {
+    UIDeviceOrientation orientation = [[UIDevice currentDevice] orientation];
+    return (orientation == UIDeviceOrientationLandscapeLeft
+            || orientation == UIDeviceOrientationLandscapeRight);
+}
+
 /******* TextField Methods BEGIN *******/
 - (BOOL)textViewShouldBeginEditing:(UITextView *)textView {
     return YES;
 }
 
 - (BOOL)textViewShouldEndEditing:(UITextView *)textView {
-    return TRUE;
+    return YES;
 }
 
 - (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range
@@ -242,7 +260,7 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
     textView.inputAccessoryView.hidden = TRUE;
     auxTextView = textView;
     originalTextViewRect = textView.frame;
-    [self performSelector :@selector(resizeTextView:) withObject:textView afterDelay:0.2];
+    [self resizeTextView:textView];
 
 }
 
@@ -251,64 +269,62 @@ static const CGFloat NUMBER_OF_ROW_LANDSCAPE_IPAD = 3;
     CGFloat screenHeight = screenRect.size.height;
     CGFloat screenWidth = screenRect.size.width;
     
-    UIInterfaceOrientation orientation = [UIApplication sharedApplication].statusBarOrientation;
     NSInteger count = [tableViewObjects count];
     NSInteger statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.height;
     NSInteger statusBarWidth = [UIApplication sharedApplication].statusBarFrame.size.width;
     
-    CGFloat sizeObjects;
-    CGFloat height;
+    CGFloat sizeObjects = 0;
+    CGFloat height2;
     CGFloat width;
     
     
     if(UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
-        if(orientation == 0 || orientation == UIInterfaceOrientationPortrait){ //iPhone Portrait
-            count = (count > NUMBER_OF_ROW_PORTRAIT_IPHONE)? 0 : (NUMBER_OF_ROW_PORTRAIT_IPHONE -count);
+        if([self isPortrait]){ //iPhone Portrait
+            count = (count == 0)? NUMBER_OF_ROW_PORTRAIT_IPHONE : 0;
             sizeObjects = count * ROW_HEIGHT;
-            height = screenHeight - keyboardSize.height - statusBarHeight + sizeObjects -10;
+            height2 = screenHeight - keyboardSize.height - statusBarHeight + sizeObjects;
             width = screenWidth;
         }
-        else if(orientation == UIInterfaceOrientationLandscapeLeft || orientation == UIInterfaceOrientationLandscapeRight){ //iPhone Landscape
-            count = (count > NUMBER_OF_ROW_LANDSCAPE_IPHONE)? 0 : (NUMBER_OF_ROW_LANDSCAPE_IPHONE -count);
+        else if([self isLandscape]){ //iPhone Landscape
+            count = (count == 0)? NUMBER_OF_ROW_LANDSCAPE_IPHONE : 0;
             sizeObjects = count * ROW_HEIGHT;
             if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8.0")) {
-                height = screenHeight - keyboardSize.height - statusBarHeight + sizeObjects -10;
+                height2 = screenHeight - keyboardSize.height - statusBarHeight + sizeObjects;
                 width = screenWidth;
             }
             else {
-                height = screenWidth - keyboardSize.width - statusBarWidth + sizeObjects -10;
+                height2 = screenWidth - keyboardSize.width - statusBarWidth + sizeObjects;
                 width = screenHeight;
                 statusBarHeight = statusBarWidth;
             }
         }
     }
     else {
-        if(orientation == 0 || orientation == UIInterfaceOrientationPortrait){ //iPad Portrait
+        if([self isPortrait]){ //iPad Portrait
             
         }
-        else if(orientation == UIInterfaceOrientationLandscapeLeft || orientation == UIInterfaceOrientationLandscapeRight){ //iPad Landscape
+        else if([self isLandscape]){ //iPad Landscape
             
         }
     }
     
     CGRect newTextViewFrame = textView.frame;
     newTextViewFrame.size.width = width;
-    newTextViewFrame.size.height = height;
+    newTextViewFrame.size.height = height2;
     newTextViewFrame.origin.y = statusBarHeight;
     newTextViewFrame.origin.x = 0;
     
-    textView.frame = newTextViewFrame;
     [textView setFrame:newTextViewFrame];
-    
-    
-    //[[UIApplication sharedApplication].keyWindow addSubview:textView];
-    //[superView bringSubviewToFront:textView];
+    [superView bringSubviewToFront:textView];
 }
 
 - (void)textViewDidEndEditing:(UITextView *)textView {
+    NSLog(@"textViewDidEndEditing");
     auxTextView = nil;
     textView.frame = originalTextViewRect;
+    [superView sendSubviewToBack:textView];
     tableViewObjects = [[NSMutableArray alloc] init];
+    [tableV reloadData];
 }
 
 /******* TextField Methods END *******/

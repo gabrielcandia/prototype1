@@ -15,6 +15,7 @@
 }
 @property (strong, nonatomic) IBOutlet UITextView *textView;
 @property (strong, nonatomic) IBOutlet UITextView *textView2;
+@property (strong, nonatomic) IBOutlet UITextView *textView3;
 
 
 @end
